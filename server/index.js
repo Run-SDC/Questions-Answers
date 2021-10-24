@@ -1,40 +1,35 @@
-/* eslint-disable func-names */
-/* eslint-disable no-plusplus */
-/* eslint-disable import/newline-after-import */
-/* eslint-disable no-unused-vars */
-const express = require('express');
-const axios = require('axios');
-const dbConnection = require('../db/connection');
-const models = require('../db/database');
-const AnswerModel = models.answers;
-const PhotosModel = models.photos;
 
-const dummy = require('../mockData');
-const { answers } = dummy;
+const path = require('path');
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const mongodb = require('mongodb').MongoClient;
+const db = require('../db/connection');
+const questionsRoute = require('../routes/getQuestion');
+
 const app = express();
 const port = 2500;
+app.use(bodyParser.json());
+app.use((req, res, next) => {
+  // Set CORS headers so that the React SPA is able to communicate with this server
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+  );
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
-const insert = async function (AnswersArray) {
-  for (let i = 0; i < AnswersArray.length; i++) {
-    const ans = {
-      answer_id: AnswersArray[i].answer_id,
-      body: AnswersArray[i].body,
-      date: AnswersArray[i].date,
-      answerer_name: AnswersArray[i].answerer_name,
-      helpfulness: AnswersArray[i].helpfulness,
-      photos: AnswersArray[i].photos,
-    };
-    // eslint-disable-next-line no-await-in-loop
-    const inserted = new AnswerModel(ans);
-    // eslint-disable-next-line no-await-in-loop
-    const saved = await inserted.save();
-    // eslint-disable-next-line no-console
-    console.log('saved', saved);
+
+
+app.use('/qa/questions', questionsRoute);
+db.initDb((err, dbase) => {
+  if (err) {
+    console.log('ERROR IN INDEX.JS', err);
+  } else {
+    app.listen(port, () => {
+      console.log('Listening on port 2500');
+    });
   }
-};
-
-insert(answers.results);
-app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log('Listening on port 2500');
 });
