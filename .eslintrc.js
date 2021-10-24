@@ -19,5 +19,8 @@ module.exports = {
     'no-underscore-dangle': 'off',
     'spaced-comment': 'off',
     'consistent-return': 'off',
+    'camelcase': 'off',
+    'comma-dangle': 'off',
+    'quote-props': 'off',
   },
 };
