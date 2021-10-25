@@ -234,8 +234,8 @@ in mongosh
 Create counters collection
 db.createCollection("counters")
 db.counters.insert({_id:'question_id', sequence_value:3518959})
-
-
+db.counters.insert({_id:"answer_id",sequence_value:6879306})
+photos id 2063759
 Agg pipeline to new collection AnsPhotos
 db.answers.aggregate([ {$lookup: { from:"photos", localField:"id", foreignField:"answer_id", as:"photos"}},{$out:"ansPhotos"}])
 

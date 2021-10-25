@@ -3,38 +3,8 @@ const { Router } = require('express');
 
 const mongodb = require('mongodb');
 const mongoClient = require('mongodb').MongoClient;
-
+const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
-
-const getNextSequenceValue = function (sequenceName) {
-  let counter;
-  console.log('HEREHEREHER');
-
-  db.getDb()
-    .db()
-    .collection('counters')
-    .findOneAndUpdate({ _id: 'question_id' }, { $inc: { sequence_value: 1 } })
-    .then((result) => {
-      console.log('res', result.value.sequence_value);
-      counter = result.value.sequence_value;
-    });
-
-  return counter;
-  // .findAndModify({
-  //   query: { _id: 'question_id' },
-  //   update: { $inc: { sequence_value: 1 } },
-  //   new: true,
-  // });
-  // .then((result) => {
-  //   console.log('result');
-  // });
-  //   const sequenceDocument = db.counters.findAndModify({
-  //     query: { _id: sequenceName },
-  //     update: { $inc: { sequence_value: 1 } },
-  //     new: true,
-  //   });
-  //   return sequenceDocument.sequence_value;
-};
 
 const router = Router();
 //GET /qa/questions
@@ -112,13 +82,20 @@ RES status: 201 CREATED
 // basic post without validation
 // need incrementer + mongoose schema
 //{_id:ObjectId('6175baed208d1634f72da402')}
-router.post('/questions', (req, res, next) => {
+router.post('/questions', async (req, res, next) => {
   // NUMBER on quwestionid and productID for now, have to see how its coming into from API
   // remember to reload with CSV HEADER question_helpfulness and qustion_date
   // highest question ID = 3518959
-  console.log('in here');
+  let newId;
+  try {
+    const value = await getNextSequenceValue('question_id');
+    newId = value;
+  } catch (error) {
+    console.log('error', error);
+  }
+
   const body = {
-    question_id: getNextSequenceValue('question_id'),
+    question_id: newId,
     product_id: Number(req.body.product_id),
     question_body: req.body.body,
     question_date: Date.now(),
@@ -127,24 +104,19 @@ router.post('/questions', (req, res, next) => {
     question_helpfulness: 0,
     reported: 0,
   };
-  console.log('do we get  here', body);
 
-  res.send('oi');
-  // db.getDb()
-  //   .db()
-  //   .collection('questions')
-  //   .insertOne(body)
-  //   .then((result) => {
-  //     console.log('POSTQUESTIONSRESULT', result);
-  //     res.status(201).json({ message: 'Created' });
-  //   })
-  //   .catch((err) => {
-  //     console.log(err);
-  //     res.status(500).json({ message: 'An error occurred.' });
-  //   });
-  // console.log('req.body', body);
-
-  // res.json({ message: req.body });
+  db.getDb()
+    .db()
+    .collection('questions')
+    .insertOne(body)
+    .then((result) => {
+      console.log('POSTQUESTIONSRESULT', result);
+      res.status(201).json({ message: 'Created' });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: 'An error occurred.' });
+    });
 });
 
 /*
@@ -159,21 +131,36 @@ photos text array ?
 res 201 created
 */
 // change to helpfulness in CSV file to avoid other transformations
-router.post('/questions/:question_id/answers', (req, res, next) => {
+router.post('/questions/:question_id/answers', async (req, res, next) => {
   // need schema validation / some way of creating new answerID
   // highest answer id 6879306
   // need to handle photos nested in questions.
+  //photos id 2063759
+  // create another counter for photoIds and insert them into answers...
+  // mongoose schema?
+
+  let newAnswerId;
+  try {
+    const value = await getNextSequenceValue('answer_id');
+    newAnswerId = value;
+  } catch (error) {
+    console.log('Error Getting New answer Sequence:', error);
+  }
+  // we need to create an object for each photo in the photos array
+  // assign its id:to be a get sequence from counters _id 'photoscount' sequence_value
+  // we have to insert put all generated objecjts into the photos key at answer.photos
+
   const questionid = Number(req.params.question_id);
   const answer = {
-    question_id: 23232323,
-    answer_id: 12121212,
+    question_id: questionid,
+    answer_id: newAnswerId,
     body: req.body.body,
     date: Date.now(),
     answerer_name: req.body.name,
     answerer_email: req.body.email,
     helpfulness: 0,
     reported: 0,
-    photos: [req.body.photos],
+    photos: req.body.photos,
   };
   console.log('req.body', req.body, questionid, answer);
   db.getDb()
@@ -188,9 +175,6 @@ router.post('/questions/:question_id/answers', (req, res, next) => {
       console.log(err);
       res.status(500).json({ message: 'An error occurred.' });
     });
-
-  // res.json({ message: req.body });
-  next();
 });
 
 // mark question helpful RES  StATUS 204: NO CONTENT
