@@ -231,8 +231,9 @@ Answers - db.answers.createIndex({id:1})
 
 Photos -
 in mongosh
-
-
+Create counters collection
+db.createCollection("counters")
+db.counters.insert({_id:'question_id', sequence_value:3518959})
 
 
 Agg pipeline to new collection AnsPhotos

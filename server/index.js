@@ -11,7 +11,6 @@ const port = 2500;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use((req, res, next) => {
-  console.log('were here', req.url);
   // Set CORS headers so that the React SPA is able to communicate with this server
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(

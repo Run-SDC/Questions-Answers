@@ -2,8 +2,39 @@
 const { Router } = require('express');
 
 const mongodb = require('mongodb');
+const mongoClient = require('mongodb').MongoClient;
 
 const db = require('../db/connection');
+
+const getNextSequenceValue = function (sequenceName) {
+  let counter;
+  console.log('HEREHEREHER');
+
+  db.getDb()
+    .db()
+    .collection('counters')
+    .findOneAndUpdate({ _id: 'question_id' }, { $inc: { sequence_value: 1 } })
+    .then((result) => {
+      console.log('res', result.value.sequence_value);
+      counter = result.value.sequence_value;
+    });
+
+  return counter;
+  // .findAndModify({
+  //   query: { _id: 'question_id' },
+  //   update: { $inc: { sequence_value: 1 } },
+  //   new: true,
+  // });
+  // .then((result) => {
+  //   console.log('result');
+  // });
+  //   const sequenceDocument = db.counters.findAndModify({
+  //     query: { _id: sequenceName },
+  //     update: { $inc: { sequence_value: 1 } },
+  //     new: true,
+  //   });
+  //   return sequenceDocument.sequence_value;
+};
 
 const router = Router();
 //GET /qa/questions
@@ -85,8 +116,9 @@ router.post('/questions', (req, res, next) => {
   // NUMBER on quwestionid and productID for now, have to see how its coming into from API
   // remember to reload with CSV HEADER question_helpfulness and qustion_date
   // highest question ID = 3518959
+  console.log('in here');
   const body = {
-    question_id: 23232323,
+    question_id: getNextSequenceValue('question_id'),
     product_id: Number(req.body.product_id),
     question_body: req.body.body,
     question_date: Date.now(),
@@ -95,20 +127,22 @@ router.post('/questions', (req, res, next) => {
     question_helpfulness: 0,
     reported: 0,
   };
+  console.log('do we get  here', body);
 
-  db.getDb()
-    .db()
-    .collection('questions')
-    .insertOne(body)
-    .then((result) => {
-      console.log('POSTQUESTIONSRESULT', result);
-      res.status(201).json({ message: 'Created' });
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).json({ message: 'An error occurred.' });
-    });
-  console.log('req.body', body);
+  res.send('oi');
+  // db.getDb()
+  //   .db()
+  //   .collection('questions')
+  //   .insertOne(body)
+  //   .then((result) => {
+  //     console.log('POSTQUESTIONSRESULT', result);
+  //     res.status(201).json({ message: 'Created' });
+  //   })
+  //   .catch((err) => {
+  //     console.log(err);
+  //     res.status(500).json({ message: 'An error occurred.' });
+  //   });
+  // console.log('req.body', body);
 
   // res.json({ message: req.body });
 });
@@ -170,7 +204,7 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
     .collection('questions')
     .updateOne(
       { question_id: question_id },
-      { $set: { question_helpfulness: 2 } }
+      { $inc: { question_helpfulness: 1 } }
     )
     .then((result) => {
       console.log('PutquestionHelpful', result);
@@ -184,6 +218,7 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
 
   res.send('ok');
 });
+
 //report question RES  StATUS 204: NO CONTENT
 router.put('/questions/:question_id/report', (req, res, next) => {
   const question_id = Number(req.params.question_id);
@@ -213,7 +248,7 @@ router.put('/answers/:answer_id/helpful', (req, res, next) => {
   db.getDb()
     .db()
     .collection('ansPhotos')
-    .updateOne({ answer_id: answerId }, { $set: { helpful: 1 } })
+    .updateOne({ answer_id: answerId }, { $inc: { helpful: 1 } })
     .then((result) => {
       console.log('Answer Marked Helpful', result);
       res.status(204);
