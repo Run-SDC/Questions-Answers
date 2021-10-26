@@ -5,30 +5,40 @@ const mongodb = require('mongodb');
 const mongoClient = require('mongodb').MongoClient;
 const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
+const aggregate = require('../db/aggregation');
 
 const router = Router();
 //GET /qa/questions
 //params product_id integer page (page is which page of results to return ) integer count integer
 //( count is results per page )
 //need format with agg pipeline
-router.get('/questions', (req, res, next) => {
+router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
   console.log('req.query', productID);
   const questions = [];
-  db.getDb()
-    .db()
-    .collection('questions')
-    .find({ product_id: productID })
-    .forEach((question) => {
-      questions.push(question);
-    })
-    .then((result) => {
-      res.status(200).json(questions);
-    })
-    .catch((err) => {
-      console.log('Error in Questions Route', err);
-      res.json({ message: 'An error Occured Getting Questions' });
-    });
+  try {
+    const result = await aggregate(productID);
+
+    res.json(result);
+  } catch (error) {
+    console.log('this didnt owrk', error);
+    res.status(500).json({ message: 'Question not Found' });
+  }
+
+  // db.getDb()
+  //   .db()
+  //   .collection('questions')
+  //   .find({ product_id: productID })
+  //   .forEach((question) => {
+  //     questions.push(question);
+  //   })
+  //   .then((result) => {
+  //     res.status(200).json(questions);
+  //   })
+  //   .catch((err) => {
+  //     console.log('Error in Questions Route', err);
+  //     res.json({ message: 'An error Occured Getting Questions' });
+  //   });
 });
 
 /*
