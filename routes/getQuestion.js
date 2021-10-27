@@ -7,6 +7,9 @@ const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
 const aggregate = require('../db/aggregation');
 
+const allQuestions = aggregate.allQuestions;
+const getAnswers = aggregate.answers;
+
 const router = Router();
 //GET /qa/questions
 //params product_id integer page (page is which page of results to return ) integer count integer
@@ -17,7 +20,7 @@ router.get('/questions', async (req, res, next) => {
   console.log('req.query', productID);
   const questions = [];
   try {
-    const result = await aggregate(productID);
+    const result = await allQuestions(productID);
 
     res.json(result);
   } catch (error) {
@@ -50,7 +53,7 @@ count integer
 res = 200 ok  + structure
 */
 // works with basic response = need agg pipeline
-router.get('/questions/:question_id/answers', (req, res, next) => {
+router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
 
   console.log('REQ', req.body, req.params, req.query);
@@ -62,22 +65,36 @@ router.get('/questions/:question_id/answers', (req, res, next) => {
 
   ///req.query = any thing with the ?  operator in teh query string
 
-  db.getDb()
-    .db()
-    .collection('ansPhotos')
-    .find({ question_id: questionID })
-    .forEach((answer) => {
-      answers.push(answer);
-    })
-    .then((result) => {
-      console.log('do we get here');
-      answers.push(result);
-      res.status(200).json(answers);
-    })
-    .catch((err) => {
-      console.log('Error in Questions Route', err);
-      res.json({ message: 'An error Occured Getting Questions' });
-    });
+  try {
+    const result = await getAnswers(questionID);
+    const resObject = {
+      question: questionID,
+      page: 0,
+      count: 5,
+      results: result,
+    };
+    res.json(resObject);
+  } catch (error) {
+    res.json(error);
+  }
+
+  // getAnswers(questionID)
+  // db.getDb()
+  //   .db()
+  //   .collection('ansPhotos')
+  //   .find({ question_id: questionID })
+  //   .forEach((answer) => {
+  //     answers.push(answer);
+  //   })
+  //   .then((result) => {
+  //     console.log('do we get here');
+  //     answers.push(result);
+  //     res.status(200).json(answers);
+  //   })
+  //   .catch((err) => {
+  //     console.log('Error in Questions Route', err);
+  //     res.json({ message: 'An error Occured Getting Questions' });
+  //   });
 });
 
 /*POST /qa/questions

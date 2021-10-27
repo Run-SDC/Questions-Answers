@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const mongodb = require('mongodb').MongoClient;
 const db = require('../db/connection');
-// const aggregate = require('../db/aggregation')
 const questionsRoute = require('../routes/getQuestion');
 
 const app = express();

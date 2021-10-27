@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable prefer-const */
 const { MongoClient } = require('mongodb');
 const mongodb = require('mongodb');
@@ -5,7 +6,7 @@ const db = require('./connection');
 
 const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
-const testingAgg = async function (prodId) {
+const allQuestions = async function (prodId) {
   const client = db.getDb();
 
   const pipeline = [
@@ -79,6 +80,85 @@ const testingAgg = async function (prodId) {
   return test;
 };
 
+const answers = async function (questionId) {
+  const client = db.getDb();
+  console.log('DID WE MAKE IT HERE', questionId);
+  const pipeline = [
+    {
+      $match: {
+        question_id: questionId,
+        reported: 0,
+      },
+    },
+    {
+      $unwind: {
+        path: '$photos',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        answer_id: '$id',
+        body: '$body',
+        date: {
+          $toString: {
+            $toDate: '$date',
+          },
+        },
+        answerer_name: '$answerer_name',
+        helpfulness: '$helpful',
+        photos: {
+          id: '$photos.id',
+          url: '$photos.url',
+        },
+      },
+    },
+    {
+      $group: {
+        _id: '$answer_id',
+        answer_id: {
+          $first: '$answer_id',
+        },
+        body: {
+          $first: '$body',
+        },
+        date: {
+          $first: '$date',
+        },
+        answerer_name: {
+          $first: '$answerer_name',
+        },
+        helpfulness: {
+          $first: '$helpfulness',
+        },
+        photos: {
+          $push: {
+            id: '$photos.id',
+            url: '$photos.url',
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+      },
+    },
+  ];
+  const cursor2 = client.db().collection('ansPhotos').aggregate(pipeline);
+  let answersRes = [];
+
+  await cursor2.forEach((answer) => {
+    //   console.log('Ans',answer)
+    if (!answer.photos[0].url) {
+      answer.photos = [];
+      console.log('What?');
+    }
+    answersRes.push(answer);
+  });
+  return answersRes;
+};
 // db.initDb((err, dbase) => {
 //   if (err) {
 //     console.log('error Connecting', err);
@@ -88,7 +168,7 @@ const testingAgg = async function (prodId) {
 //   }
 // });
 
-module.exports = testingAgg;
+module.exports = { allQuestions, answers };
 const pipe2 = [
   {
     $match: {
