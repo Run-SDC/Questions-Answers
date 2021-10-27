@@ -85,12 +85,13 @@ const allQuestions = async function (prodId) {
         asker_name: {
           $first: '$asker_name',
         },
+        question_helpfulness: {
+          $first: '$helpful',
+        },
         reported: {
           $first: '$reported',
         },
-        question_helpfullness: {
-          $first: '$helpful',
-        },
+
         answers: {
           $push: {
             $cond: [
