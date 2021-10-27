@@ -13,6 +13,7 @@ const allQuestions = async function (prodId) {
     {
       $match: {
         product_id: 1,
+        reported: 0,
       },
     },
     {
@@ -30,20 +31,42 @@ const allQuestions = async function (prodId) {
       },
     },
     {
-      $project: {
-        _id: 0,
-        question_id: '$question_id',
-        question_body: '$question_body',
-        question_date: '$question_date',
-        asker_name: '$asker_name',
-        reported: '$reported',
+      $set: {
+        question_date: {
+          $toString: {
+            $toDate: '$question_date',
+          },
+        },
+        reported: {
+          $toBool: '$reported',
+        },
         answers: {
-          id: '$answers.id',
-          body: '$answers.body',
-          date: '$answers.date',
-          answerer_name: '$answerer_name',
-          helpfulness: '$answers.helpful',
-          photos: '$answers.photos.url',
+          $cond: [
+            {
+              $lte: ['$answers', null],
+            },
+            {
+              id: 'noanswer',
+            },
+            {
+              id: '$answers.id',
+              body: '$answers.body',
+              date: {
+                $toString: {
+                  $toDate: '$answers.date',
+                },
+              },
+              answerer_name: '$answers.answerer_name',
+              helpfulness: '$answers.helpful',
+              photos: {
+                $map: {
+                  input: '$answers.photos',
+                  as: 'photos',
+                  in: '$$photos.url',
+                },
+              },
+            },
+          ],
         },
       },
     },
@@ -65,8 +88,61 @@ const allQuestions = async function (prodId) {
         reported: {
           $first: '$reported',
         },
+        question_helpfullness: {
+          $first: '$helpful',
+        },
         answers: {
-          $push: '$answers',
+          $push: {
+            $cond: [
+              {
+                $ne: [
+                  {
+                    $type: '$answers.id',
+                  },
+                  'string',
+                ],
+              },
+              '$answers',
+              {
+                id: 'n',
+              },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        answers: {
+          $arrayToObject: {
+            $map: {
+              input: '$answers',
+              in: {
+                k: {
+                  $toString: '$$this.id',
+                },
+                v: '$$this',
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+      },
+    },
+    {
+      $set: {
+        answers: {
+          $cond: [
+            {
+              $eq: ['$answers.n.id', 'n'],
+            },
+            {},
+            '$answers',
+          ],
         },
       },
     },
