@@ -12,7 +12,7 @@ const allQuestions = async function (prodId) {
   const pipeline = [
     {
       $match: {
-        product_id: 1,
+        product_id: prodId,
         reported: 0,
       },
     },
@@ -150,9 +150,13 @@ const allQuestions = async function (prodId) {
   ];
   const cursor = client.db().collection('questions').aggregate(pipeline);
   let test = [];
-  await cursor.forEach((question) => {
-    test.push(question);
-  });
+  try {
+    await cursor.forEach((question) => {
+      test.push(question);
+    });
+  } catch (error) {
+    return error;
+  }
 
   return test;
 };
@@ -230,74 +234,10 @@ const answers = async function (questionId) {
     //   console.log('Ans',answer)
     if (!answer.photos[0].url) {
       answer.photos = [];
-      console.log('What?');
     }
     answersRes.push(answer);
   });
   return answersRes;
 };
-// db.initDb((err, dbase) => {
-//   if (err) {
-//     console.log('error Connecting', err);
-//   } else {
-//     console.log('connected!');
-//     testingAgg();
-//   }
-// });
 
 module.exports = { allQuestions, answers };
-const pipe2 = [
-  {
-    $match: {
-      product_id: 1,
-    },
-  },
-  {
-    $lookup: {
-      from: 'ansPhotos',
-      localField: 'question_id',
-      foreignField: 'question_id',
-      as: 'answers',
-    },
-  },
-  {
-    $unset: [
-      '_id',
-      'answers._id',
-      'answers.photos._id',
-      'product_id',
-      'asker_email',
-      'answers.photos.id',
-      'answers.photos.answer_id',
-      'id',
-    ],
-  },
-  {
-    $addFields: {
-      'answers.photos': {
-        $map: {
-          input: '$answers.photos',
-          as: 'el',
-          in: '$$el.url',
-        },
-      },
-    },
-  },
-  {
-    $addFields: {
-      answers: {
-        $arrayToObject: {
-          $map: {
-            input: '$answers',
-            in: {
-              k: {
-                $toString: '$$this.id',
-              },
-              v: '$$this',
-            },
-          },
-        },
-      },
-    },
-  },
-];

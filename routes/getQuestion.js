@@ -17,31 +17,23 @@ const router = Router();
 //need format with agg pipeline
 router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
+
   console.log('req.query', productID);
   const questions = [];
   try {
     const result = await allQuestions(productID);
-
-    res.json(result);
+    const resObject = {
+      product_id: productID,
+      page: 0,
+      count: 5,
+      results: result,
+    };
+    console.log('RESULTOBJ', resObject.results[0].answers);
+    res.json(resObject);
   } catch (error) {
     console.log('this didnt owrk', error);
     res.status(500).json({ message: 'Question not Found' });
   }
-
-  // db.getDb()
-  //   .db()
-  //   .collection('questions')
-  //   .find({ product_id: productID })
-  //   .forEach((question) => {
-  //     questions.push(question);
-  //   })
-  //   .then((result) => {
-  //     res.status(200).json(questions);
-  //   })
-  //   .catch((err) => {
-  //     console.log('Error in Questions Route', err);
-  //     res.json({ message: 'An error Occured Getting Questions' });
-  //   });
 });
 
 /*
@@ -69,7 +61,7 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
     const result = await getAnswers(questionID);
     const resObject = {
       question: questionID,
-      page: 0,
+      page: 1,
       count: 5,
       results: result,
     };
@@ -77,24 +69,6 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
   } catch (error) {
     res.json(error);
   }
-
-  // getAnswers(questionID)
-  // db.getDb()
-  //   .db()
-  //   .collection('ansPhotos')
-  //   .find({ question_id: questionID })
-  //   .forEach((answer) => {
-  //     answers.push(answer);
-  //   })
-  //   .then((result) => {
-  //     console.log('do we get here');
-  //     answers.push(result);
-  //     res.status(200).json(answers);
-  //   })
-  //   .catch((err) => {
-  //     console.log('Error in Questions Route', err);
-  //     res.json({ message: 'An error Occured Getting Questions' });
-  //   });
 });
 
 /*POST /qa/questions
@@ -293,43 +267,3 @@ router.put('/answers/:answer_id/report', (req, res, next) => {
 // mark question helpful
 
 module.exports = router;
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-PUT /qa/questions/:question_id/helpful
-
-parameter question _id  = id of qustion to update
-
-RES 204 NO CONTENT
-
-
-
-PUT /qa/questions/:question_id/report
-parameters question_id integer
-
-RES = 204 NO CONTENT
-
-PUT /qa/answers/:answer_id/helpful
-
-parameters answer_id   integer
-
-RES Status 204 NO CONTENT
-
-
-PUT /qa/answers/:answer_id/report
-
-parameters = answer_id integer
-
-RES  StATUS 204: NO CONTENT
-*/
