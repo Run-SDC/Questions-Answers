@@ -1,8 +1,5 @@
 /* eslint-disable object-shorthand */
 const { Router } = require('express');
-
-const mongodb = require('mongodb');
-const mongoClient = require('mongodb').MongoClient;
 const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
 const aggregate = require('../db/aggregation');
@@ -21,17 +18,17 @@ router.get('/questions', async (req, res, next) => {
   console.log('req.query', productID);
   const questions = [];
   try {
-    const result = await allQuestions(productID);
+    const result = await allQuestions(productID, 'questions_answers');
     const resObject = {
       product_id: productID,
       page: 0,
       count: 5,
       results: result,
     };
-    console.log('RESULTOBJ', resObject.results[0].answers);
+    // console.log('RESULTOBJ', resObject.results);
     res.json(resObject);
   } catch (error) {
-    console.log('this didnt owrk', error);
+    console.log('Error getting question:', error);
     res.status(500).json({ message: 'Question not Found' });
   }
 });
@@ -47,18 +44,18 @@ res = 200 ok  + structure
 // works with basic response = need agg pipeline
 router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
-
+  /// EDGE CASE == No answers for a question
   console.log('REQ', req.body, req.params, req.query);
 
   // req.params = anyhthing in the/: format = the server is expecting it
   const questionID = Number(req.params.question_id);
 
-  console.log('this', typeof questionID);
+  // console.log('this', typeof questionID);
 
   ///req.query = any thing with the ?  operator in teh query string
 
   try {
-    const result = await getAnswers(questionID);
+    const result = await getAnswers(questionID, 'questions_answers');
     const resObject = {
       question: questionID,
       page: 1,
@@ -66,6 +63,7 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
       results: result,
     };
     res.json(resObject);
+    console.log('answers', resObject);
   } catch (error) {
     res.json(error);
   }
@@ -87,6 +85,9 @@ router.post('/questions', async (req, res, next) => {
   // NUMBER on quwestionid and productID for now, have to see how its coming into from API
   // remember to reload with CSV HEADER question_helpfulness and qustion_date
   // highest question ID = 3518959
+
+  //3518963
+  //3518963
   let newId;
   try {
     const value = await getNextSequenceValue('question_id');

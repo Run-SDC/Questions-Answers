@@ -6,6 +6,7 @@ const mongodb = require('mongodb').MongoClient;
 const db = require('../db/connection');
 const questionsRoute = require('../routes/getQuestion');
 
+
 const app = express();
 const port = 2500;
 app.use(bodyParser.json());
@@ -20,8 +21,13 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
-
+console.log('node', process.env.NODE_ENV);
 app.use('/qa', questionsRoute);
+
+app.use((err, req, res, next) => {
+  console.log('errorININDEX', err);
+  next();
+});
 db.initDb((err, dbase) => {
   if (err) {
     console.log('ERROR IN INDEX.JS', err);
@@ -31,5 +37,3 @@ db.initDb((err, dbase) => {
     });
   }
 });
-
-

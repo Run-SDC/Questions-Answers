@@ -1,12 +1,12 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable prefer-const */
-const { MongoClient } = require('mongodb');
-const mongodb = require('mongodb');
+// const { MongoClient } = require('mongodb');
+// const mongodb = require('mongodb');
 const db = require('./connection');
 
 const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
-const allQuestions = async function (prodId) {
+const allQuestions = async function (prodId, collection) {
   const client = db.getDb();
 
   const pipeline = [
@@ -17,17 +17,14 @@ const allQuestions = async function (prodId) {
       },
     },
     {
-      $lookup: {
-        from: 'ansPhotos',
-        localField: 'question_id',
-        foreignField: 'question_id',
-        as: 'answers',
-      },
-    },
-    {
       $unwind: {
         path: '$answers',
         preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $match: {
+        'answers.reported': 0,
       },
     },
     {
@@ -91,7 +88,6 @@ const allQuestions = async function (prodId) {
         reported: {
           $first: '$reported',
         },
-
         answers: {
           $push: {
             $cond: [
@@ -148,7 +144,7 @@ const allQuestions = async function (prodId) {
       },
     },
   ];
-  const cursor = client.db().collection('questions').aggregate(pipeline);
+  const cursor = client.db().collection(collection).aggregate(pipeline);
   let test = [];
   try {
     await cursor.forEach((question) => {
@@ -161,9 +157,8 @@ const allQuestions = async function (prodId) {
   return test;
 };
 
-const answers = async function (questionId) {
+const answers = async function (questionId, collection) {
   const client = db.getDb();
-  console.log('DID WE MAKE IT HERE', questionId);
   const pipeline = [
     {
       $match: {
@@ -173,25 +168,38 @@ const answers = async function (questionId) {
     },
     {
       $unwind: {
-        path: '$photos',
+        path: '$answers',
+        includeArrayIndex: 'string',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $match: {
+        'answers.reported': 0,
+      },
+    },
+    {
+      $unwind: {
+        path: '$answers.photos',
+        includeArrayIndex: 'string',
         preserveNullAndEmptyArrays: true,
       },
     },
     {
       $project: {
         _id: 0,
-        answer_id: '$id',
-        body: '$body',
+        answer_id: '$answers.id',
+        body: '$answers.body',
         date: {
           $toString: {
-            $toDate: '$date',
+            $toDate: '$answers.date',
           },
         },
-        answerer_name: '$answerer_name',
-        helpfulness: '$helpful',
+        answerer_name: '$answers.answerer_name',
+        helpfulness: '$answers.helpful',
         photos: {
-          id: '$photos.id',
-          url: '$photos.url',
+          id: '$answers.photos.id',
+          url: '$answers.photos.url',
         },
       },
     },
@@ -227,17 +235,20 @@ const answers = async function (questionId) {
       },
     },
   ];
-  const cursor2 = client.db().collection('ansPhotos').aggregate(pipeline);
+  const cursor2 = client.db().collection(collection).aggregate(pipeline);
   let answersRes = [];
-
-  await cursor2.forEach((answer) => {
-    //   console.log('Ans',answer)
-    if (!answer.photos[0].url) {
-      answer.photos = [];
-    }
-    answersRes.push(answer);
-  });
-  return answersRes;
+  try {
+    await cursor2.forEach((answer) => {
+      console.log('Ans', answer);
+      if (!answer.photos[0].url) {
+        answer.photos = [];
+      }
+      answersRes.push(answer);
+    });
+    return answersRes;
+  } catch (error) {
+    return error;
+  }
 };
 
 module.exports = { allQuestions, answers };
