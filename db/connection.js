@@ -21,6 +21,16 @@ const initDb = (callback) => {
       .catch((err) => {
         callback(err);
       });
+  } else {
+    const mongodbURL = 'mongodb://localhost:27017/sdcdb';
+    MongoClient.connect(mongodbURL)
+      .then((client) => {
+        _db = client;
+        callback(null, _db);
+      })
+      .catch((err) => {
+        callback(err);
+      });
   }
 };
 

@@ -1,12 +1,20 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-await-in-loop */
 /* eslint-disable object-shorthand */
 const { Router } = require('express');
+
+const mongoose = require('mongoose');
+const mongodb = require('mongodb');
 const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
 const aggregate = require('../db/aggregation');
 
+
+mongoose.Promise = global.Promise;
 const allQuestions = aggregate.allQuestions;
 const getAnswers = aggregate.answers;
 
+const ObjectId = mongodb.ObjectId;
 const router = Router();
 //GET /qa/questions
 //params product_id integer page (page is which page of results to return ) integer count integer
@@ -85,7 +93,7 @@ router.post('/questions', async (req, res, next) => {
   // NUMBER on quwestionid and productID for now, have to see how its coming into from API
   // remember to reload with CSV HEADER question_helpfulness and qustion_date
   // highest question ID = 3518959
-
+  //3518963
   //3518963
   //3518963
   let newId;
@@ -103,13 +111,16 @@ router.post('/questions', async (req, res, next) => {
     question_date: Date.now(),
     asker_name: req.body.name,
     asker_email: req.body.email,
-    question_helpfulness: 0,
+    helpful: 0,
     reported: 0,
+    answers: [],
   };
+
+  // res.json(body)
 
   db.getDb()
     .db()
-    .collection('questions')
+    .collection('questions_answers')
     .insertOne(body)
     .then((result) => {
       console.log('POSTQUESTIONSRESULT', result);
@@ -142,11 +153,25 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
   // mongoose schema?
 
   let newAnswerId;
+  let photosArray = [];
   try {
     const value = await getNextSequenceValue('answer_id');
     newAnswerId = value;
+    if (req.body.photos.length) {
+      for (let i = 0; i < req.body.photos.length; i++) {
+        let temp = await getNextSequenceValue('photo_id');
+        let photoObject = {
+          _id: new ObjectId(temp),
+          id: temp,
+          answer_id: newAnswerId,
+          url: req.body.photos[i],
+        };
+        photosArray.push(photoObject);
+      }
+    }
   } catch (error) {
     console.log('Error Getting New answer Sequence:', error);
+    throw error;
   }
   // we need to create an object for each photo in the photos array
   // assign its id:to be a get sequence from counters _id 'photoscount' sequence_value
@@ -154,21 +179,21 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
 
   const questionid = Number(req.params.question_id);
   const answer = {
+    id: newAnswerId,
     question_id: questionid,
-    answer_id: newAnswerId,
     body: req.body.body,
     date: Date.now(),
     answerer_name: req.body.name,
     answerer_email: req.body.email,
-    helpfulness: 0,
+    helpful: 0,
     reported: 0,
-    photos: req.body.photos,
+    photos: photosArray,
   };
   console.log('req.body', req.body, questionid, answer);
   db.getDb()
     .db()
-    .collection('ansPhotos')
-    .insertOne(answer)
+    .collection('questions_answers')
+    .updateOne({ question_id: questionid }, { $push: { answers: answer } })
     .then((result) => {
       console.log('POSTANSWERRESULT', result);
       res.status(201).json({ message: 'Created' });
@@ -187,11 +212,8 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
   const question_id = Number(req.params.question_id);
   db.getDb()
     .db()
-    .collection('questions')
-    .updateOne(
-      { question_id: question_id },
-      { $inc: { question_helpfulness: 1 } }
-    )
+    .collection('questions_answers')
+    .updateOne({ question_id: question_id }, { $inc: { helpful: 1 } })
     .then((result) => {
       console.log('PutquestionHelpful', result);
       res.status(204);
@@ -211,7 +233,7 @@ router.put('/questions/:question_id/report', (req, res, next) => {
 
   db.getDb()
     .db()
-    .collection('questions')
+    .collection('questions_answers')
     .updateOne({ question_id: question_id }, { $set: { reported: 1 } })
     .then((result) => {
       console.log('Report Question', result);
@@ -233,8 +255,12 @@ router.put('/answers/:answer_id/helpful', (req, res, next) => {
 
   db.getDb()
     .db()
-    .collection('ansPhotos')
-    .updateOne({ answer_id: answerId }, { $inc: { helpful: 1 } })
+    .collection('questions_answers')
+    .updateOne(
+      { 'answers.id': answerId },
+      { $inc: { 'answers.$[el].helpful': 1 } },
+      { arrayFilters: [{ 'el.id': { $eq: answerId } }] }
+    )
     .then((result) => {
       console.log('Answer Marked Helpful', result);
       res.status(204);
@@ -244,8 +270,6 @@ router.put('/answers/:answer_id/helpful', (req, res, next) => {
       res.status(500).json({ message: 'An error occurred.' });
     });
   console.log('answer_id', answerId);
-
-  res.send('ok');
 });
 
 // report answer RES  StATUS 204: NO CONTENT
@@ -253,8 +277,12 @@ router.put('/answers/:answer_id/report', (req, res, next) => {
   const answerId = Number(req.params.answer_id);
   db.getDb()
     .db()
-    .collection('ansPhotos')
-    .updateOne({ answer_id: answerId }, { $set: { reported: 1 } })
+    .collection('questions_answers')
+    .updateOne(
+      { 'answers.id': answerId },
+      { $set: { 'answers.$[el].helpful': 1 } },
+      { arrayFilters: [{ 'el.id': { $eq: answerId } }] }
+    )
     .then((result) => {
       console.log('Report Question', result);
       res.status(204).send('No Content');

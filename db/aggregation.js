@@ -12,7 +12,7 @@ const allQuestions = async function (prodId, collection) {
   const pipeline = [
     {
       $match: {
-        product_id: prodId,
+        product_id: 1,
         reported: 0,
       },
     },
@@ -20,11 +20,6 @@ const allQuestions = async function (prodId, collection) {
       $unwind: {
         path: '$answers',
         preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $match: {
-        'answers.reported': 0,
       },
     },
     {
@@ -44,6 +39,7 @@ const allQuestions = async function (prodId, collection) {
             },
             {
               id: 'noanswer',
+              reported: false,
             },
             {
               id: '$answers.id',
@@ -55,6 +51,9 @@ const allQuestions = async function (prodId, collection) {
               },
               answerer_name: '$answers.answerer_name',
               helpfulness: '$answers.helpful',
+              reported: {
+                $toBool: '$answers.reported',
+              },
               photos: {
                 $map: {
                   input: '$answers.photos',
@@ -65,6 +64,16 @@ const allQuestions = async function (prodId, collection) {
             },
           ],
         },
+      },
+    },
+    {
+      $match: {
+        'answers.reported': false,
+      },
+    },
+    {
+      $project: {
+        'answers.reported': 0,
       },
     },
     {
