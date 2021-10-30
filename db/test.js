@@ -1,9 +1,11 @@
+/* eslint-disable no-unused-expressions */
 /* eslint-disable prefer-arrow-callback */
 /* eslint-disable no-undef */
 const mongodb = require('mongodb');
 const assert = require('assert');
 const request = require('supertest');
 const mongoose = require('mongoose');
+const expect = require('chai');
 const app = require('../server/index');
 const router = require('../routes/getQuestion');
 const db = require('./connection');
@@ -30,35 +32,16 @@ describe('Connection', function () {
   });
 });
 
-//   // db.on('error', console.error.bind(console, 'Error Connectin to sdcdb DB'));
-//   // db.once('open', function () {
-//   //   console.log('Connected Succesfully ');
-//   //   done();
-//   // });
-// });
-
-// afterEach((done) => {
-//   // console.log('WE MADE IT HERE');
-//   // db.close();
-//   // db.getDb().close(done);
-//   db.getDb().close(done);
-//   // db.getDb().close(() => {
-//   //   console.log('WERE IN THE OTHER ONE');
-//   //   done();
-//   // });
-// });
-
-// test that route gets  a question list
-
-// how to make sure connection runs for test env.
-
 describe('Routes and database interaction', function () {
   it(' GET/qa/questions?product_id=n: Retrieves a question with all its answers ', (done) => {
     request(app)
       .get('/qa/questions?product_id=4')
 
       .end((err, response) => {
-        console.log('response=========', response.body);
+        console.log('response=========', response.body.results);
+        assert(response.ok) === true;
+        assert(response.body.product_id) === 4;
+        assert(response.body.results.length) === 5;
         done();
       });
   });
@@ -66,35 +49,114 @@ describe('Routes and database interaction', function () {
     request(app)
       .get('/qa/questions/4/answers')
       .end((err, response) => {
-        console.log('RESPONSE', response.body);
+        console.log('RESPONSE', response);
+        assert(response.ok) === true;
+        assert(response.statusCode) === 200;
         done();
       });
   });
-  it.only('POST/qa/questions: It posts a question to the database', function (done) {
+  it('POST/qa/questions: It posts a question to the database', function (done) {
+    const data = {
+      product_id: '1',
+      body: "I'm not sure how to use this product",
+      name: 'someGuy',
+      email: 'someguy@guy.com',
+    };
     request(app)
-      .post('/questions')
+      .post('/qa/questions')
+      .send(data)
       .end((err, response) => {
-        console.log('POST QUESTIONS', response.body);
+        console.log('RESPONSE', response);
+        assert(response.body) === { message: 'Created' };
+        assert(response.created) === 'Created';
+        assert(response.statusCode) === 201;
         done();
       });
   });
-  xit('POST/qa/questions:question_id/answers: It posts an answer to the database', function (done) {
-    done();
+  it('POST/qa/questions:question_id/answers: It posts an answer to the database', function (done) {
+    const answer = {
+      name: 'Answerer',
+      email: 'ans@email.com',
+      body: 'I think you wear it as a hat of some sort',
+      photos: [],
+    };
+    // id in post is the newly created question id from previous test
+    request(app)
+      .post('/qa/questions/3518967/answers')
+      .send(answer)
+      .end((err, response) => {
+        console.log('POST QUESTIONS');
+        assert(response.body) === { message: 'Created' };
+        assert(response.statusCode) === 201;
+        done();
+      });
   });
-  xit('PUT /qa/questions/:question_id/helpful: It updates a question as helpful', function (done) {
-    done();
+  it('PUT /qa/questions/:question_id/helpful: It updates a question as helpful', function (done) {
+    // id in PUT matches previously created question
+    request(app)
+      .put('/qa/questions/3518967/answers')
+      .end((err, response) => {
+        assert(response.statusCode) === 204;
+        done();
+      });
   });
-  xit('PUT /qa/questions/:question_id/report:  It updates a question to be reported ', function (done) {
-    done();
+  it('PUT /qa/questions/:question_id/report:  It updates a question to be reported ', function (done) {
+    request(app)
+      .put('/qa/questions/3518967/report')
+      .end((err, response) => {
+        assert(response.statusCode) === 204;
+        done();
+      });
   });
-  xit('PUT/qa/answers/:answer_id/helpful: It marks an answer as helfpul', function (done) {
-    done();
+  it('PUT/qa/answers/:answer_id/helpful: It marks an answer as helfpul', function (done) {
+    request(app)
+      .put('/qa/answers/6879307/helpful')
+      .end((err, response) => {
+        assert(response.statusCode) === 204;
+        done();
+      });
   });
-  xit('PUT/qa/answers/:answer_id/report: It reports a question', function (done) {
-    done();
+  it('PUT/qa/answers/:answer_id/report: It reports an answer', function (done) {
+    request(app)
+      .put('/qa/answers/6879307/report')
+      .end((err, response) => {
+        assert(response.statusCode) === 204;
+        done();
+      });
+  });
+  describe('Data base Queries', function () {
+    it.only('fetches a valid question from the database', function (done) {
+      // db.initDb();
+      db.getDb()
+        .db()
+        .collection('questions_answers')
+        .findOne({ question_id: 4 })
+        .then((res) => {
+          console.log('res', JSON.stringify(res));
+          done();
+        });
+    });
   });
 });
 
+const answersResponse = {
+  id: 6879307,
+
+  question_id: 3518967,
+
+  body: 'I think you wear it as a hat of some sort',
+
+  date: 1635569595031,
+
+  answerer_name: 'Answerer',
+
+  answerer_email: 'ans@email.com',
+
+  helpful: 0,
+  reported: 0,
+
+  photos: [],
+};
 // test that route gets answers
 
 // test that route posts questions

@@ -9,7 +9,6 @@ const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
 const aggregate = require('../db/aggregation');
 
-
 mongoose.Promise = global.Promise;
 const allQuestions = aggregate.allQuestions;
 const getAnswers = aggregate.answers;
@@ -70,7 +69,7 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
       count: 5,
       results: result,
     };
-    res.json(resObject);
+    res.status(200).json(resObject);
     console.log('answers', resObject);
   } catch (error) {
     res.json(error);
@@ -223,8 +222,6 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
       res.status(500).json({ message: 'An error occurred.' });
     });
   console.log('question_id', question_id);
-
-  res.send('ok');
 });
 
 //report question RES  StATUS 204: NO CONTENT
@@ -237,7 +234,7 @@ router.put('/questions/:question_id/report', (req, res, next) => {
     .updateOne({ question_id: question_id }, { $set: { reported: 1 } })
     .then((result) => {
       console.log('Report Question', result);
-      res.status(204);
+      res.status(204).end();
     })
     .catch((err) => {
       console.log(err);
@@ -249,7 +246,7 @@ router.put('/questions/:question_id/report', (req, res, next) => {
 });
 
 // mark answer helpfulRES  StATUS 204: NO CONTENT
-router.put('/answers/:answer_id/helpful', (req, res, next) => {
+router.put('/answers/:answer_id/helpful', async (req, res, next) => {
   const answerId = Number(req.params.answer_id);
   // index answerIDS to improve write operations
 
@@ -263,13 +260,12 @@ router.put('/answers/:answer_id/helpful', (req, res, next) => {
     )
     .then((result) => {
       console.log('Answer Marked Helpful', result);
-      res.status(204);
+      res.status(204).end();
     })
     .catch((err) => {
       console.log(err);
       res.status(500).json({ message: 'An error occurred.' });
     });
-  console.log('answer_id', answerId);
 });
 
 // report answer RES  StATUS 204: NO CONTENT
