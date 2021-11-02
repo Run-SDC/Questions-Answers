@@ -1,3 +1,4 @@
+/* eslint-disable no-else-return */
 /* eslint-disable no-unused-expressions */
 /* eslint-disable prefer-arrow-callback */
 /* eslint-disable no-undef */
@@ -5,11 +6,13 @@ const mongodb = require('mongodb');
 const assert = require('assert');
 const request = require('supertest');
 const mongoose = require('mongoose');
-const expect = require('chai');
+const expect = require('chai').expect;
 const app = require('../server/index');
 const router = require('../routes/getQuestion');
 const db = require('./connection');
-// const db = mongoose.connection;
+
+
+const ObjectId = mongodb.ObjectId;
 
 mongoose.Promise = global.Promise;
 const MongoClient = mongodb.MongoClient;
@@ -21,7 +24,6 @@ describe('Connection', function () {
         console.log('ERROR IN INDEX.JS', err);
         done();
       } else {
-        // db.getDb(done);
         done();
       }
     });
@@ -38,7 +40,6 @@ describe('Routes and database interaction', function () {
       .get('/qa/questions?product_id=4')
 
       .end((err, response) => {
-        console.log('response=========', response.body.results);
         assert(response.ok) === true;
         assert(response.body.product_id) === 4;
         assert(response.body.results.length) === 5;
@@ -49,7 +50,6 @@ describe('Routes and database interaction', function () {
     request(app)
       .get('/qa/questions/4/answers')
       .end((err, response) => {
-        console.log('RESPONSE', response);
         assert(response.ok) === true;
         assert(response.statusCode) === 200;
         done();
@@ -66,7 +66,6 @@ describe('Routes and database interaction', function () {
       .post('/qa/questions')
       .send(data)
       .end((err, response) => {
-        console.log('RESPONSE', response);
         assert(response.body) === { message: 'Created' };
         assert(response.created) === 'Created';
         assert(response.statusCode) === 201;
@@ -85,7 +84,6 @@ describe('Routes and database interaction', function () {
       .post('/qa/questions/3518967/answers')
       .send(answer)
       .end((err, response) => {
-        console.log('POST QUESTIONS');
         assert(response.body) === { message: 'Created' };
         assert(response.statusCode) === 201;
         done();
@@ -124,17 +122,37 @@ describe('Routes and database interaction', function () {
         done();
       });
   });
+
   describe('Data base Queries', function () {
-    it.only('fetches a valid question from the database', function (done) {
-      // db.initDb();
+    it('fetches a valid question from the database', function (done) {
       db.getDb()
         .db()
         .collection('questions_answers')
         .findOne({ question_id: 4 })
         .then((res) => {
-          console.log('res', JSON.stringify(res));
+          expect(res.question_id).to.equal(4);
           done();
         });
+    });
+  });
+  describe('Connection Helper ', function () {
+    it('establishes a connection', function (done) {
+      const test = function () {
+        db.initDb((err, dB) => {
+          if (err) {
+            throw err;
+          } else {
+            return dB;
+          }
+        });
+      };
+
+      expect(test).to.not.throw();
+      done();
+    });
+    it('returns an instance of the Database', function (done) {
+      expect(db.getDb).to.not.throw();
+      done();
     });
   });
 });

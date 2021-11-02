@@ -1,3 +1,4 @@
+require('newrelic');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -20,7 +21,7 @@ app.use((req, res, next) => {
     'Access-Control-Allow-Methods',
     'GET,POST,PUT,PATCH,DELETE,OPTIONS'
   );
-  console.log('do we get here');
+
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
@@ -28,7 +29,7 @@ console.log('node', process.env.NODE_ENV);
 
 // app.get('/', (req, res, next) => {
 //   console.log("here'");
-//   res.send('yo');
+//   res.status(200).send('ok')
 // });
 app.use('/qa', questionsRoute);
 

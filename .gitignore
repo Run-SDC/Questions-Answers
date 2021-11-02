@@ -105,3 +105,4 @@ dist
 
 # security
 .config.js
+newrelic.js

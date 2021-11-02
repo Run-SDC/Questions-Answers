@@ -22,17 +22,17 @@ const router = Router();
 router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
 
-  console.log('req.query', productID);
+
   const questions = [];
   try {
     const result = await allQuestions(productID, 'questions_answers');
     const resObject = {
       product_id: productID,
-      page: 0,
-      count: 5,
+      page: 1,
+      count: 100,
       results: result,
     };
-    // console.log('RESULTOBJ', resObject.results);
+
     res.json(resObject);
   } catch (error) {
     console.log('Error getting question:', error);
@@ -52,12 +52,11 @@ res = 200 ok  + structure
 router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
   /// EDGE CASE == No answers for a question
-  console.log('REQ', req.body, req.params, req.query);
+
 
   // req.params = anyhthing in the/: format = the server is expecting it
   const questionID = Number(req.params.question_id);
 
-  // console.log('this', typeof questionID);
 
   ///req.query = any thing with the ?  operator in teh query string
 
@@ -70,7 +69,7 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
       results: result,
     };
     res.status(200).json(resObject);
-    console.log('answers', resObject);
+    // console.log('answers', resObject);
   } catch (error) {
     res.json(error);
   }
@@ -172,11 +171,9 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
     console.log('Error Getting New answer Sequence:', error);
     throw error;
   }
-  // we need to create an object for each photo in the photos array
-  // assign its id:to be a get sequence from counters _id 'photoscount' sequence_value
-  // we have to insert put all generated objecjts into the photos key at answer.photos
 
   const questionid = Number(req.params.question_id);
+
   const answer = {
     id: newAnswerId,
     question_id: questionid,
@@ -195,6 +192,9 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
     .updateOne({ question_id: questionid }, { $push: { answers: answer } })
     .then((result) => {
       console.log('POSTANSWERRESULT', result);
+      if (result.matchedCount === 0) {
+        throw new Error('No documents match the query ');
+      }
       res.status(201).json({ message: 'Created' });
     })
     .catch((err) => {
@@ -215,6 +215,9 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
     .updateOne({ question_id: question_id }, { $inc: { helpful: 1 } })
     .then((result) => {
       console.log('PutquestionHelpful', result);
+      if (result.matchedCount === 0) {
+        throw new Error('This Question doesnt Exist');
+      }
       res.status(204);
     })
     .catch((err) => {
@@ -260,6 +263,9 @@ router.put('/answers/:answer_id/helpful', async (req, res, next) => {
     )
     .then((result) => {
       console.log('Answer Marked Helpful', result);
+      if (result.matchedCount === 0) {
+        throw new Error('This Answer doesnt exist');
+      }
       res.status(204).end();
     })
     .catch((err) => {

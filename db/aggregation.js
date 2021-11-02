@@ -12,7 +12,7 @@ const allQuestions = async function (prodId, collection) {
   const pipeline = [
     {
       $match: {
-        product_id: 1,
+        product_id: prodId,
         reported: 0,
       },
     },
@@ -248,7 +248,6 @@ const answers = async function (questionId, collection) {
   let answersRes = [];
   try {
     await cursor2.forEach((answer) => {
-      console.log('Ans', answer);
       if (!answer.photos[0].url) {
         answer.photos = [];
       }
