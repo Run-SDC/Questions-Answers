@@ -22,7 +22,6 @@ const router = Router();
 router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
 
-
   const questions = [];
   try {
     const result = await allQuestions(productID, 'questions_answers');
@@ -53,10 +52,8 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
   /// EDGE CASE == No answers for a question
 
-
   // req.params = anyhthing in the/: format = the server is expecting it
   const questionID = Number(req.params.question_id);
-
 
   ///req.query = any thing with the ?  operator in teh query string
 
@@ -103,6 +100,7 @@ router.post('/questions', async (req, res, next) => {
   }
 
   const body = {
+    _id: new ObjectId(newId),
     question_id: newId,
     product_id: Number(req.body.product_id),
     question_body: req.body.body,
@@ -175,6 +173,7 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
   const questionid = Number(req.params.question_id);
 
   const answer = {
+    _id: new ObjectId(newAnswerId),
     id: newAnswerId,
     question_id: questionid,
     body: req.body.body,
@@ -218,7 +217,7 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
       if (result.matchedCount === 0) {
         throw new Error('This Question doesnt Exist');
       }
-      res.status(204);
+      res.status(204).end();
     })
     .catch((err) => {
       console.log(err);
@@ -237,15 +236,12 @@ router.put('/questions/:question_id/report', (req, res, next) => {
     .updateOne({ question_id: question_id }, { $set: { reported: 1 } })
     .then((result) => {
       console.log('Report Question', result);
-      res.status(204).end();
+      res.sendStatus(204);
     })
     .catch((err) => {
       console.log(err);
       res.status(500).json({ message: 'An error occurred.' });
     });
-  console.log('question_id', question_id);
-
-  res.send('ok');
 });
 
 // mark answer helpfulRES  StATUS 204: NO CONTENT
