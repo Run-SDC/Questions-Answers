@@ -1,23 +1,37 @@
 const mongodb = require('mongodb');
+const mongoose = require('mongoose');
 
 const MongoClient = mongodb.MongoClient;
 
-const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 let _db;
 const initDb = (callback) => {
   if (_db) {
     console.log('Database Is already intiialized');
     return callback(null, _db);
   }
+  if (process.env.NODE_ENV !== 'test') {
+    console.log('OTHER', process.env.NODE_ENV);
+    const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
-  MongoClient.connect(mongodbURL)
-    .then((client) => {
-      _db = client;
-      callback(null, _db);
-    })
-    .catch((err) => {
-      callback(err);
-    });
+    MongoClient.connect(mongodbURL)
+      .then((client) => {
+        _db = client;
+        callback(null, _db);
+      })
+      .catch((err) => {
+        callback(err);
+      });
+  } else {
+    const mongodbURL = 'mongodb://localhost:27017/sdcdb';
+    MongoClient.connect(mongodbURL)
+      .then((client) => {
+        _db = client;
+        callback(null, _db);
+      })
+      .catch((err) => {
+        callback(err);
+      });
+  }
 };
 
 const getDb = () => {
@@ -31,8 +45,6 @@ module.exports = {
   initDb,
   getDb,
 };
-
-
 
 /*const { Db } = require('mongodb');
 const mongoose = require('mongoose');

@@ -1,27 +1,19 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable prefer-const */
-const { MongoClient } = require('mongodb');
-const mongodb = require('mongodb');
+// const { MongoClient } = require('mongodb');
+// const mongodb = require('mongodb');
 const db = require('./connection');
 
 const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
-const allQuestions = async function (prodId) {
+const allQuestions = async function (prodId, collection) {
   const client = db.getDb();
 
   const pipeline = [
     {
       $match: {
-        product_id: 1,
+        product_id: prodId,
         reported: 0,
-      },
-    },
-    {
-      $lookup: {
-        from: 'ansPhotos',
-        localField: 'question_id',
-        foreignField: 'question_id',
-        as: 'answers',
       },
     },
     {
@@ -47,6 +39,7 @@ const allQuestions = async function (prodId) {
             },
             {
               id: 'noanswer',
+              reported: false,
             },
             {
               id: '$answers.id',
@@ -58,6 +51,9 @@ const allQuestions = async function (prodId) {
               },
               answerer_name: '$answers.answerer_name',
               helpfulness: '$answers.helpful',
+              reported: {
+                $toBool: '$answers.reported',
+              },
               photos: {
                 $map: {
                   input: '$answers.photos',
@@ -68,6 +64,16 @@ const allQuestions = async function (prodId) {
             },
           ],
         },
+      },
+    },
+    {
+      $match: {
+        'answers.reported': false,
+      },
+    },
+    {
+      $project: {
+        'answers.reported': 0,
       },
     },
     {
@@ -85,11 +91,11 @@ const allQuestions = async function (prodId) {
         asker_name: {
           $first: '$asker_name',
         },
+        question_helpfulness: {
+          $first: '$helpful',
+        },
         reported: {
           $first: '$reported',
-        },
-        question_helpfullness: {
-          $first: '$helpful',
         },
         answers: {
           $push: {
@@ -147,18 +153,21 @@ const allQuestions = async function (prodId) {
       },
     },
   ];
-  const cursor = client.db().collection('questions').aggregate(pipeline);
+  const cursor = client.db().collection(collection).aggregate(pipeline);
   let test = [];
-  await cursor.forEach((question) => {
-    test.push(question);
-  });
+  try {
+    await cursor.forEach((question) => {
+      test.push(question);
+    });
+  } catch (error) {
+    return error;
+  }
 
   return test;
 };
 
-const answers = async function (questionId) {
+const answers = async function (questionId, collection) {
   const client = db.getDb();
-  console.log('DID WE MAKE IT HERE', questionId);
   const pipeline = [
     {
       $match: {
@@ -168,25 +177,38 @@ const answers = async function (questionId) {
     },
     {
       $unwind: {
-        path: '$photos',
+        path: '$answers',
+        includeArrayIndex: 'string',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $match: {
+        'answers.reported': 0,
+      },
+    },
+    {
+      $unwind: {
+        path: '$answers.photos',
+        includeArrayIndex: 'string',
         preserveNullAndEmptyArrays: true,
       },
     },
     {
       $project: {
         _id: 0,
-        answer_id: '$id',
-        body: '$body',
+        answer_id: '$answers.id',
+        body: '$answers.body',
         date: {
           $toString: {
-            $toDate: '$date',
+            $toDate: '$answers.date',
           },
         },
-        answerer_name: '$answerer_name',
-        helpfulness: '$helpful',
+        answerer_name: '$answers.answerer_name',
+        helpfulness: '$answers.helpful',
         photos: {
-          id: '$photos.id',
-          url: '$photos.url',
+          id: '$answers.photos.id',
+          url: '$answers.photos.url',
         },
       },
     },
@@ -222,81 +244,19 @@ const answers = async function (questionId) {
       },
     },
   ];
-  const cursor2 = client.db().collection('ansPhotos').aggregate(pipeline);
+  const cursor2 = client.db().collection(collection).aggregate(pipeline);
   let answersRes = [];
-
-  await cursor2.forEach((answer) => {
-    //   console.log('Ans',answer)
-    if (!answer.photos[0].url) {
-      answer.photos = [];
-      console.log('What?');
-    }
-    answersRes.push(answer);
-  });
-  return answersRes;
+  try {
+    await cursor2.forEach((answer) => {
+      if (!answer.photos[0].url) {
+        answer.photos = [];
+      }
+      answersRes.push(answer);
+    });
+    return answersRes;
+  } catch (error) {
+    return error;
+  }
 };
-// db.initDb((err, dbase) => {
-//   if (err) {
-//     console.log('error Connecting', err);
-//   } else {
-//     console.log('connected!');
-//     testingAgg();
-//   }
-// });
 
 module.exports = { allQuestions, answers };
-const pipe2 = [
-  {
-    $match: {
-      product_id: 1,
-    },
-  },
-  {
-    $lookup: {
-      from: 'ansPhotos',
-      localField: 'question_id',
-      foreignField: 'question_id',
-      as: 'answers',
-    },
-  },
-  {
-    $unset: [
-      '_id',
-      'answers._id',
-      'answers.photos._id',
-      'product_id',
-      'asker_email',
-      'answers.photos.id',
-      'answers.photos.answer_id',
-      'id',
-    ],
-  },
-  {
-    $addFields: {
-      'answers.photos': {
-        $map: {
-          input: '$answers.photos',
-          as: 'el',
-          in: '$$el.url',
-        },
-      },
-    },
-  },
-  {
-    $addFields: {
-      answers: {
-        $arrayToObject: {
-          $map: {
-            input: '$answers',
-            in: {
-              k: {
-                $toString: '$$this.id',
-              },
-              v: '$$this',
-            },
-          },
-        },
-      },
-    },
-  },
-];
