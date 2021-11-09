@@ -11,9 +11,10 @@ const initDb = (callback) => {
   }
   if (process.env.NODE_ENV !== 'test') {
     console.log('OTHER', process.env.NODE_ENV);
+    const mongoProdUrl = 'mongodb://jhsdc:bbear8588@ec2-54-172-122-137.compute-1.amazonaws.com:27017/questions_answers?authSource=admin';
     const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
-    MongoClient.connect(mongodbURL)
+    MongoClient.connect(mongoProdUrl)
       .then((client) => {
         _db = client;
         callback(null, _db);

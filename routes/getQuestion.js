@@ -31,7 +31,7 @@ router.get('/questions', async (req, res, next) => {
       count: 100,
       results: result,
     };
-
+    console.log('questions',resObject)
     res.json(resObject);
   } catch (error) {
     console.log('Error getting question:', error);
@@ -51,7 +51,7 @@ res = 200 ok  + structure
 router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
   /// EDGE CASE == No answers for a question
-
+  console.log('here')
   // req.params = anyhthing in the/: format = the server is expecting it
   const questionID = Number(req.params.question_id);
 
