@@ -1,5 +1,6 @@
+/* eslint-disable quotes */
 const mongodb = require('mongodb');
-const mongoose = require('mongoose');
+
 
 const MongoClient = mongodb.MongoClient;
 
@@ -10,8 +11,7 @@ const initDb = (callback) => {
     return callback(null, _db);
   }
   if (process.env.NODE_ENV !== 'test') {
-    console.log('OTHER', process.env.NODE_ENV);
-    const mongoProdUrl = 'mongodb://jhsdc:bbear8588@ec2-54-172-122-137.compute-1.amazonaws.com:27017/questions_answers?authSource=admin';
+    const mongoProdUrl = `mongodb://${process.env.MONGOUSER}:${process.env.MONGO_PASS}@54.172.122.137:27017/questions_answers?authSource=admin`;
     const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
     MongoClient.connect(mongoProdUrl)
@@ -47,18 +47,3 @@ module.exports = {
   getDb,
 };
 
-/*const { Db } = require('mongodb');
-const mongoose = require('mongoose');
-
-
-mongoose.connect('mongodb://localhost/sdcdb', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-const { connection } = mongoose;
-connection.on('error', console.error.bind(console, 'connectionError'));
-connection.once('open', () => {
-  console.log('connected to MongoDb ');
-});
-
-*/

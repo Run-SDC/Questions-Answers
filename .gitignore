@@ -104,5 +104,4 @@ dist
 .tern-port
 
 # security
-.config.js
 newrelic.js

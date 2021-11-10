@@ -1,21 +1,21 @@
-require('newrelic');
-const path = require('path');
+// require('newrelic');
+
+const dotenv = require('dotenv');
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const mongodb = require('mongodb').MongoClient;
-const mongoose = require('mongoose');
-
+const compression = require('compression');
 const db = require('../db/connection');
 const questionsRoute = require('../routes/getQuestion');
 
-mongoose.Promise = global.Promise;
 const app = express();
-const port = 2500;
+const PORT = 2500;
+const HOST = '0.0.0.0';
+dotenv.config();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(compression());
 app.use((req, res, next) => {
-  // Set CORS headers so that the React SPA is able to communicate with this server
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(
     'Access-Control-Allow-Methods',
@@ -25,24 +25,16 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
-console.log('node', process.env.NODE_ENV);
+console.log('nodeEnv', process.env.NODE_ENV);
 
-// app.get('/', (req, res, next) => {
-//   console.log("here'");
-//   res.status(200).send('ok')
-// });
 app.use('/qa', questionsRoute);
 
-// app.use((err, req, res, next) => {
-//   console.log('errorININDEX', err);
-//   next();
-// });
 db.initDb((err, dbase) => {
   if (err) {
     console.log('ERROR IN INDEX.JS', err);
   } else {
-    app.listen(port, () => {
-      console.log('Listening on port 2500');
+    app.listen(PORT, HOST, () => {
+      console.log(`Running on http://${HOST}:${PORT}`);
     });
   }
 });

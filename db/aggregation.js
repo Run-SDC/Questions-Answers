@@ -4,7 +4,6 @@
 // const mongodb = require('mongodb');
 const db = require('./connection');
 
-const mongodbURL = 'mongodb://localhost:27017/questions_answers';
 
 const allQuestions = async function (prodId, collection) {
   const client = db.getDb();

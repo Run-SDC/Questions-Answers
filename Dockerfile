@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . /app/
 
-
+ENV NODE_ENV=production
 
 EXPOSE 2500
 

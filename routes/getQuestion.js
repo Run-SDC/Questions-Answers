@@ -3,22 +3,17 @@
 /* eslint-disable object-shorthand */
 const { Router } = require('express');
 
-const mongoose = require('mongoose');
 const mongodb = require('mongodb');
 const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
 const aggregate = require('../db/aggregation');
 
-mongoose.Promise = global.Promise;
 const allQuestions = aggregate.allQuestions;
 const getAnswers = aggregate.answers;
 
 const ObjectId = mongodb.ObjectId;
 const router = Router();
-//GET /qa/questions
-//params product_id integer page (page is which page of results to return ) integer count integer
-//( count is results per page )
-//need format with agg pipeline
+
 router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
 
@@ -31,7 +26,7 @@ router.get('/questions', async (req, res, next) => {
       count: 100,
       results: result,
     };
-    console.log('questions',resObject)
+    console.log('questions', resObject);
     res.json(resObject);
   } catch (error) {
     console.log('Error getting question:', error);
@@ -39,23 +34,15 @@ router.get('/questions', async (req, res, next) => {
   }
 });
 
-/*
-GET /qa/questions/:question_id/answers
-params question_id integer
-quwrey params
-page integer
-count integer
-res = 200 ok  + structure
-*/
-// works with basic response = need agg pipeline
+
 router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
-  /// EDGE CASE == No answers for a question
-  console.log('here')
-  // req.params = anyhthing in the/: format = the server is expecting it
+
+  console.log('here');
+
   const questionID = Number(req.params.question_id);
 
-  ///req.query = any thing with the ?  operator in teh query string
+
 
   try {
     const result = await getAnswers(questionID, 'questions_answers');
@@ -66,31 +53,13 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
       results: result,
     };
     res.status(200).json(resObject);
-    // console.log('answers', resObject);
   } catch (error) {
     res.json(error);
   }
 });
 
-/*POST /qa/questions
-body params
-body text
-name text
-email text
-product_id  text
 
-RES status: 201 CREATED
-*/
-// basic post without validation
-// need incrementer + mongoose schema
-//{_id:ObjectId('6175baed208d1634f72da402')}
 router.post('/questions', async (req, res, next) => {
-  // NUMBER on quwestionid and productID for now, have to see how its coming into from API
-  // remember to reload with CSV HEADER question_helpfulness and qustion_date
-  // highest question ID = 3518959
-  //3518963
-  //3518963
-  //3518963
   let newId;
   try {
     const value = await getNextSequenceValue('question_id');
@@ -112,7 +81,6 @@ router.post('/questions', async (req, res, next) => {
     answers: [],
   };
 
-  // res.json(body)
 
   db.getDb()
     .db()
@@ -128,26 +96,11 @@ router.post('/questions', async (req, res, next) => {
     });
 });
 
-/*
-POST /qa/questions/:question_id/answers
 
-parameters  = question_id integer
-Body parameters
-body text
-name text
-email text
-photos text array ?
-res 201 created
-*/
-// change to helpfulness in CSV file to avoid other transformations
+
+
+
 router.post('/questions/:question_id/answers', async (req, res, next) => {
-  // need schema validation / some way of creating new answerID
-  // highest answer id 6879306
-  // need to handle photos nested in questions.
-  //photos id 2063759
-  // create another counter for photoIds and insert them into answers...
-  // mongoose schema?
-
   let newAnswerId;
   let photosArray = [];
   try {
@@ -202,11 +155,8 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
     });
 });
 
-// mark question helpful RES  StATUS 204: NO CONTENT
+
 router.put('/questions/:question_id/helpful', (req, res, next) => {
-  // we need an incrementer for question helpfulness, probably an $INC
-  // these routes will look very similar... how to avoid calling question by accident when
-  //trying to post answer as helpful or vice versa?
   const question_id = Number(req.params.question_id);
   db.getDb()
     .db()
@@ -226,7 +176,6 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
   console.log('question_id', question_id);
 });
 
-//report question RES  StATUS 204: NO CONTENT
 router.put('/questions/:question_id/report', (req, res, next) => {
   const question_id = Number(req.params.question_id);
 
@@ -244,10 +193,8 @@ router.put('/questions/:question_id/report', (req, res, next) => {
     });
 });
 
-// mark answer helpfulRES  StATUS 204: NO CONTENT
 router.put('/answers/:answer_id/helpful', async (req, res, next) => {
   const answerId = Number(req.params.answer_id);
-  // index answerIDS to improve write operations
 
   db.getDb()
     .db()
@@ -270,7 +217,6 @@ router.put('/answers/:answer_id/helpful', async (req, res, next) => {
     });
 });
 
-// report answer RES  StATUS 204: NO CONTENT
 router.put('/answers/:answer_id/report', (req, res, next) => {
   const answerId = Number(req.params.answer_id);
   db.getDb()
@@ -291,6 +237,5 @@ router.put('/answers/:answer_id/report', (req, res, next) => {
     });
   console.log('answer_id', answerId);
 });
-// mark question helpful
 
 module.exports = router;
