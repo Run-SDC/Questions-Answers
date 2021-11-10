@@ -10,7 +10,7 @@ const questionsRoute = require('../routes/getQuestion');
 
 const app = express();
 const PORT = 2500;
-const HOST = '0.0.0.0';
+// const HOST = '0.0.0.0';
 dotenv.config();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -25,7 +25,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
-console.log('nodeEnv', process.env.NODE_ENV);
+console.log('nodeEnv', "ANYTHING");
 
 app.use('/qa', questionsRoute);
 
@@ -33,8 +33,8 @@ db.initDb((err, dbase) => {
   if (err) {
     console.log('ERROR IN INDEX.JS', err);
   } else {
-    app.listen(PORT, HOST, () => {
-      console.log(`Running on http://${HOST}:${PORT}`);
+    app.listen(PORT, () => {
+      console.log(`Running on port ${PORT}`);
     });
   }
 });
