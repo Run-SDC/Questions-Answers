@@ -16,17 +16,22 @@ const router = Router();
 
 router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
-
+  if (Number.isNaN(productID)) {
+    // res.status(500).json({ message: 'ERROR' });
+    let error = new Error('This is not a valid id');
+    res.status(500).json({ message: error.toString() });
+    return;
+  }
   const questions = [];
   try {
     const result = await allQuestions(productID, 'questions_answers');
     const resObject = {
       product_id: productID,
       page: 1,
-      count: 100,
+      count: 5,
       results: result,
     };
-    console.log('questions', resObject);
+
     res.json(resObject);
   } catch (error) {
     console.log('Error getting question:', error);
@@ -34,16 +39,17 @@ router.get('/questions', async (req, res, next) => {
   }
 });
 
-
 router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
 
-  console.log('here');
-
   const questionID = Number(req.params.question_id);
 
-
-
+  if (Number.isNaN(questionID)) {
+    // res.status(500).json({ message: 'ERROR' });
+    let error = new Error('This is not a valid id');
+    res.status(500).json({ message: error.toString() });
+    return;
+  }
   try {
     const result = await getAnswers(questionID, 'questions_answers');
     const resObject = {
@@ -52,12 +58,13 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
       count: 5,
       results: result,
     };
+
     res.status(200).json(resObject);
   } catch (error) {
-    res.json(error);
+    console.log('here?');
+    res.status(500).json(error);
   }
 });
-
 
 router.post('/questions', async (req, res, next) => {
   let newId;
@@ -81,13 +88,11 @@ router.post('/questions', async (req, res, next) => {
     answers: [],
   };
 
-
   db.getDb()
     .db()
     .collection('questions_answers')
     .insertOne(body)
     .then((result) => {
-      console.log('POSTQUESTIONSRESULT', result);
       res.status(201).json({ message: 'Created' });
     })
     .catch((err) => {
@@ -95,10 +100,6 @@ router.post('/questions', async (req, res, next) => {
       res.status(500).json({ message: 'An error occurred.' });
     });
 });
-
-
-
-
 
 router.post('/questions/:question_id/answers', async (req, res, next) => {
   let newAnswerId;
@@ -154,7 +155,6 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
       res.status(500).json({ message: 'An error occurred.' });
     });
 });
-
 
 router.put('/questions/:question_id/helpful', (req, res, next) => {
   const question_id = Number(req.params.question_id);
