@@ -1,5 +1,5 @@
 /* eslint-disable prefer-arrow-callback */
-// require('newrelic');
+require('newrelic');
 const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -32,7 +32,7 @@ app.use(cors());
 app.get('/', (req, res, next) => {
   res.end(`<h1>${process.env.MESSAGE}</h1>`);
 });
-app.get('/loaderio-d8e5c33f8b94e0539821c09de937b942.txt', (req, res, next) => {
+app.get('/loaderio-327fbf065cf68f74934c4fdaff11f0ed.txt', (req, res, next) => {
   const options = {
     root: path.join(__dirname),
   };
