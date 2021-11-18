@@ -17,9 +17,9 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 1000,
+      rate: 10,
       timeUnit: '1s',
-      duration: '60s',
+      duration: '12s',
       preAllocatedVUs: 1800,
       maxVUs: 2000,
     },
@@ -34,10 +34,10 @@ export default function () {
   const randomInteger = function (min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   };
-  const random = randomInteger(900000, 1000000);
+  const random = randomInteger(900000, 940000);
 
   const res = http.get(
-    `http://localhost:2500/qa/questions?product_id=${random}`
+    `http://54.90.131.23/qa/questions?product_id=${random}`
   );
 
   check(res, {

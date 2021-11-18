@@ -2,28 +2,42 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable object-shorthand */
 const { Router } = require('express');
-
 const mongodb = require('mongodb');
+const redis = require('../redis/redisCofig');
 const getNextSequenceValue = require('../db/dbHelpers');
 const db = require('../db/connection');
 const aggregate = require('../db/aggregation');
 
 const allQuestions = aggregate.allQuestions;
 const getAnswers = aggregate.answers;
-
+const Set = redis.Set;
+const Get = redis.Get;
+const Ex = redis.Ex;
+const Flush = redis.Flush;
 const ObjectId = mongodb.ObjectId;
 const router = Router();
 
+router.get('/flush', (req, res, next) => {
+  Flush();
+  res.send('ok');
+});
 router.get('/questions', async (req, res, next) => {
   const productID = Number(req.query.product_id);
+
   if (Number.isNaN(productID)) {
-    // res.status(500).json({ message: 'ERROR' });
     let error = new Error('This is not a valid id');
     res.status(500).json({ message: error.toString() });
     return;
   }
-  const questions = [];
+
+  const page = 1;
+  const count = 5;
+  const key = `product_id:${productID}:page${page}:count${count}`;
   try {
+    const cache = await Get(key);
+    if (cache) {
+      return res.send(JSON.parse(cache));
+    }
     const result = await allQuestions(productID, 'questions_answers');
     const resObject = {
       product_id: productID,
@@ -32,7 +46,8 @@ router.get('/questions', async (req, res, next) => {
       results: result,
     };
 
-    res.json(resObject);
+    res.json(resObject).end();
+    return redis.Set(key, JSON.stringify(resObject));
   } catch (error) {
     console.log('Error getting question:', error);
     res.status(500).json({ message: 'Question not Found' });
@@ -43,14 +58,19 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
   const answers = [];
 
   const questionID = Number(req.params.question_id);
-
+  const page = 1;
+  const count = 5;
+  const key = `question_id:${questionID}:page${page}:count${count}`;
   if (Number.isNaN(questionID)) {
-    // res.status(500).json({ message: 'ERROR' });
     let error = new Error('This is not a valid id');
     res.status(500).json({ message: error.toString() });
     return;
   }
   try {
+    const cache = await Get(key);
+    if (cache) {
+      return res.send(JSON.parse(cache));
+    }
     const result = await getAnswers(questionID, 'questions_answers');
     const resObject = {
       question: questionID,
@@ -60,8 +80,8 @@ router.get('/questions/:question_id/answers', async (req, res, next) => {
     };
 
     res.status(200).json(resObject);
+    return redis.Set(key, JSON.stringify(resObject));
   } catch (error) {
-    console.log('here?');
     res.status(500).json(error);
   }
 });
@@ -144,7 +164,6 @@ router.post('/questions/:question_id/answers', async (req, res, next) => {
     .collection('questions_answers')
     .updateOne({ question_id: questionid }, { $push: { answers: answer } })
     .then((result) => {
-      console.log('POSTANSWERRESULT', result);
       if (result.matchedCount === 0) {
         throw new Error('No documents match the query ');
       }
@@ -163,7 +182,6 @@ router.put('/questions/:question_id/helpful', (req, res, next) => {
     .collection('questions_answers')
     .updateOne({ question_id: question_id }, { $inc: { helpful: 1 } })
     .then((result) => {
-      console.log('PutquestionHelpful', result);
       if (result.matchedCount === 0) {
         throw new Error('This Question doesnt Exist');
       }
@@ -228,14 +246,12 @@ router.put('/answers/:answer_id/report', (req, res, next) => {
       { arrayFilters: [{ 'el.id': { $eq: answerId } }] }
     )
     .then((result) => {
-      console.log('Report Question', result);
       res.status(204).send('No Content');
     })
     .catch((err) => {
       console.log(err);
       res.status(500).json({ message: 'An error occurred.' });
     });
-  console.log('answer_id', answerId);
 });
 
 module.exports = router;
